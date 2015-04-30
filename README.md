@@ -64,4 +64,6 @@ PyVGDemo is released under the [MIT License][opensource].
 [vgmanager]: http://www.kp3d.com/vgmanager.html
 [vglogger]: http://www.kp3d.com/vgmanager.html
 [python]: http://www.python.org/
+[cherrypy]: http://www.cherrypy.org
+[bs4]: http://www.crummy.com/software/BeautifulSoup/
 
