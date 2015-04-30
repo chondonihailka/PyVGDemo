@@ -1,7 +1,8 @@
 import os
+
 try:
     import _winreg as winreg
-except NameError:
+except ImportError:
     import winreg
 
 import cherrypy
@@ -9,6 +10,7 @@ import Config as cfg
 from . import vghd
 from .ServerUtils.HtmlHelper import HTMLHelper
 from .ServerUtils import ConfigPHelper
+
 
 class SettingsHandler(object):
     def __init__(self, direc):
@@ -34,9 +36,7 @@ class SettingsHandler(object):
         html.br()
         html.input(type="submit", value="Save Settings", class_="pb blue")
         html.form.close()
-        html.div(id="reply")
-        html.div.close()
-        html.script(src="/media/settingsjs/", type="text/javascript")
+        html.script(src="/media/settings.js", type="text/javascript")
         html.script.close()
         return "{}".format(html)
 
@@ -45,7 +45,8 @@ class SettingsHandler(object):
     def checkpath(self, path):
         if os.path.exists(path):
             reply = "true"
-        else: reply = "false"
+        else:
+            reply = "false"
         return dict(reply=reply)
 
     @cherrypy.expose
@@ -68,7 +69,9 @@ class SettingsHandler(object):
         config.setValue("windows_user_id", winid, "virtuagirl")
         config.Save()
         vghd.Load()
-        return dict(reply="Save Successful. <a href='/'>Go to Home</a>")
+        idxbld = vghd.index_builder()
+        idxbld.start()
+        return dict(reply="Settings saved successfully.")
 
     def load(self):
         config = ConfigPHelper.Configuration(self.absDir)
@@ -78,3 +81,5 @@ class SettingsHandler(object):
             cfg.vdhd_exe = config.getValue("vghd_executable", "virtuagirl")
             cfg.regId = config.getValue("windows_user_id", "virtuagirl")
         vghd.Load()
+        idxbld = vghd.index_builder()
+        idxbld.start()

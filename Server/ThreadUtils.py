@@ -1,5 +1,6 @@
 import threading
 
+
 class ControlledThread(threading.Thread):
     """
     The ControlledThread is a controllable thread, meaning once started
@@ -7,6 +8,7 @@ class ControlledThread(threading.Thread):
     and implementing the do_work() method which will be called repeatedly
     in the thread running loop.
     """
+
     def __init__(self):
         threading.Thread.__init__(self)
         # a count of how many times the loop has iterated
@@ -22,7 +24,7 @@ class ControlledThread(threading.Thread):
         """ Called at ControlledThread.start(), start the main thread loop.
         :return:
         """
-        self.resume() # unpause self
+        self.resume()  # unpause self
         while not self._finished:
             if self.condition() is False:
                 return
@@ -49,9 +51,9 @@ class ControlledThread(threading.Thread):
         """
         with self.state:
             if self.paused:
-                self.state.wait()   # block until notified
+                self.state.wait()  # block until notified
             if self.stopped:
-                return False        # stop the execution
+                return False  # stop the execution
         return True
 
     def pause(self):
@@ -68,7 +70,7 @@ class ControlledThread(threading.Thread):
         with self.state:
             self.stopped = True
             self.paused = False
-            self.state.notify()     # unblock if waiting
+            self.state.notify()  # unblock if waiting
 
     def finish(self):
         """ Finish the thread breaking the thread loop condition.

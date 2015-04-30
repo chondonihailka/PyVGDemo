@@ -1,4 +1,5 @@
 import os
+
 try:
     from _winreg import HKEY_USERS
 except ImportError:
@@ -15,3 +16,5 @@ regHead = HKEY_USERS
 regId = r"S-1-5-21-9263988-149312531-499419475-1001"
 regLoc = regId + r"\Software\Totem\vghd\Parameters"
 regClipLoc = regId + r"\Software\Totem\vghd\player"
+
+models_sorted = False

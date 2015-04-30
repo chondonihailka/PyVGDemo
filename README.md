@@ -26,13 +26,13 @@ Python plugin for [VirtuaGirl HD][virtuagirl] demos. Provides a decent user inte
 * Windows operating system
 * Any of the [VirtuaGirl HD][virtuagirl] or [DeskBabes][deskbabes] softwares installed, referred to as `VG` from here on.
 * Python installed. You can download Python from [http://www.python.org][python]
-* [Cherrypy][cherrypy] and [beautifulsoup][bs4] installed.
+* [Cherrypy][cherrypy] installed.
 
 ### Procedure
 
 * Clone the repository or download as zip file and extract.
-* If you don't have [Cherrypy][cherrypy] and [beautifulsoup][bs4] installed, please install them.
-	Installation can be done using pip as `pip install cherrypy` and `pip install beautifulsoup`.
+* If you don't have [Cherrypy][cherrypy] installed.
+	Installation can be done using pip as `pip install cherrypy`.
 * Run the `PyVGDemo.py`
 
 _Note_: This program does not start the `VG`, it must be already running.
@@ -65,5 +65,5 @@ PyVGDemo is released under the [MIT License][opensource].
 [vglogger]: http://www.kp3d.com/vgmanager.html
 [python]: http://www.python.org/
 [cherrypy]: http://www.cherrypy.org
-[bs4]: http://www.crummy.com/software/BeautifulSoup/
+
 

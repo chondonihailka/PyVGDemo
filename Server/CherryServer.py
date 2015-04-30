@@ -1,17 +1,20 @@
 import os
+
 import cherrypy
+
+
 try:
     import urllib2
-except NameError:
+except ImportError:
     import urllib.request as urllib2
 
 import Config
 from . import vghd
-from .Media import MediaHandler
 from .Ajax import AjaxHandler
 from .ServerUtils.HtmlHelper import HTMLHelper
 from .ServerUtils.Utils import launchAsChromeApp
 from .Settings import SettingsHandler
+
 
 class CherryServer(object):
     def __init__(self, absDir, ip_port):
@@ -19,7 +22,6 @@ class CherryServer(object):
 
         self.ajax = AjaxHandler(absDir)
         self.html = HTMLHelper(absDir, ip_port)
-        self.media = MediaHandler()
         self.settings = SettingsHandler(absDir)
         self.settings.load()
 
@@ -28,10 +30,11 @@ class CherryServer(object):
         """ The home page """
         if not os.path.isdir(Config.vdhd_data) or not os.path.isdir(Config.vghd_models):
             return self.settings.index()
-        else: return self.cards()
+        else:
+            return self.cards()
 
     @cherrypy.expose
-    def cards(self, start = 0):
+    def cards(self, start=0):
         start = int(start)
         end = start + 10
         if end > len(vghd.ModelDemos):
@@ -43,16 +46,16 @@ class CherryServer(object):
 
         html.div()
         if start > 0:
-            html.a("Prev", href="/cards/{}".format(start-10))
+            html.a("Prev", href="/cards/{}".format(start - 10))
         if end < len(vghd.ModelDemos):
             html.a("Next", href="/cards/{}".format(end))
         html.add(" Pages: ")
-        for idx in range(start-40, start+50, 10):
+        for idx in range(start - 40, start + 50, 10):
             if idx in range(0, len(vghd.ModelDemos)):
                 if idx == start:
-                    html.add("{} ".format(int(idx/10) + 1))
+                    html.add("{} ".format(int(idx / 10) + 1))
                 else:
-                    html.a("{}".format(int(idx/10) + 1), href="/cards/{}".format(idx))
+                    html.a("{}".format(int(idx / 10) + 1), href="/cards/{}".format(idx))
                     html.add(" ")
 
         if end < len(vghd.ModelDemos):
@@ -66,13 +69,18 @@ class CherryServer(object):
         html.div.close()
         html.hr()
 
-        for id in sorted(models):
+        if Config.models_sorted:
+            keys = sorted(models)
+        else:
+            keys = models.keys()
+
+        for id in keys:
             html.div(class_="left")
             html.a(href="/card/{}".format(id))
             html.img(src=r"/image/{0}/{0}c.jpg".format(id))
             html.a.close()
             html.br()
-            html.a("Play All", href="/ajax/play/{}".format(id))
+            html.a("Play All", href="javascript:play('{}', '0');".format(id))
             html.div.close()
 
         return "{}".format(html)
@@ -81,7 +89,7 @@ class CherryServer(object):
     def cardspage(self, pgno, **kwargs):
         try:
             pgno = int(pgno)
-            return self.cards(pgno*10)
+            return self.cards(pgno * 10)
         except:
             return self.cards()
 
@@ -100,12 +108,12 @@ class CherryServer(object):
         count = len(vghd.ModelDemos[id])
         html.p("No. of Demos: {}".format(count))
         for demo in vghd.ModelDemos[id]:
-            demoId = demo.split(".")[0].split("_")[1]
             html.a(demo, href="javascript:play('{}', '{}');".format(id, demo))
             html.br()
 
         model = vghd.ModelInfo(id)
         html.p("Name: {}".format(model.name()))
+        html.p("Outfit: {}".format(model.outfit()))
         html.p("City: {}".format(model.city()))
         html.p("Country: {}".format(model.country()))
         html.p("Description: {}".format(model.description()))
@@ -122,6 +130,49 @@ class CherryServer(object):
         return "{}".format(html)
 
     @cherrypy.expose
+    def search(self, **kwargs):
+        if "name" in kwargs:
+            search_term = kwargs["name"]
+            html = self.html.init("Search name '{}'".format(search_term))
+            models = vghd.search(name=search_term)
+        elif "id" in kwargs:
+            search_term = kwargs["id"]
+            html = self.html.init("Search id '{}'".format(search_term))
+            models = vghd.search(id=search_term)
+        elif "outfit" in kwargs:
+            search_term = kwargs["outfit"]
+            html = self.html.init("Search outfit '{}'".format(search_term))
+            models = vghd.search(outfit=search_term)
+        else:
+            return self.cards()
+
+        count = len(models)
+        if len(models) > 20:
+            models = models[:20]
+            html.p("Found {} items for '{}'. Showing only the first 20 items.".format(count, search_term))
+        else:
+            html.p("Found {} items for '{}'.".format(count, search_term))
+
+        for model in models:
+            html.div()
+            html.a(href="/card/{}".format(model[0]))
+            html.img(src=r"/image/{0}/{0}c.jpg".format(model[0]))
+            html.a.close()
+            html.p("{} by {} ({}) from {}, {}".format(
+                model[2].title(),
+                model[1].title(),
+                model[0],
+                model[3].title(),
+                model[4].title()
+            )
+            )
+            html.a("Play all of {}".format(model[2].title()), href="javascript:play('{}', '0');".format(model[0]))
+            html.div.close()
+            html.br()
+
+        return "{}".format(html)
+
+    @cherrypy.expose
     def execute(self, command):
         return self.ajax.index(command)
 
@@ -133,17 +184,21 @@ class CherryServer(object):
 
 def StartServer(absDir):
     config = \
-    {
-        '/': {
-            'tools.sessions.on': True,
-            'tools.encode.on': True,
-            'tools.encode.encoding': 'utf-8'
-        },
-        '/image': {
-            'tools.staticdir.on': True,
-            'tools.staticdir.dir': Config.vdhd_data
+        {
+            '/': {
+                'tools.sessions.on': True,
+                'tools.encode.on': True,
+                'tools.encode.encoding': 'utf-8'
+            },
+            '/image': {
+                'tools.staticdir.on': True,
+                'tools.staticdir.dir': Config.vdhd_data
+            },
+            '/media': {
+                'tools.staticdir.on': True,
+                'tools.staticdir.dir': os.path.join(absDir, "Server/Media/")
+            }
         }
-    }
 
     cherrypy.server.socket_host = Config.ip_port[0]
     cherrypy.server.socket_port = Config.ip_port[1]
@@ -154,12 +209,13 @@ def StartServer(absDir):
     serv = None
     # ping to see server is already running on the current ip_port
     try:
-        serv = urllib2.urlopen("http://%s:%d/" %Config.ip_port, timeout=15)
-    except urllib2.URLError as err: pass
+        serv = urllib2.urlopen("http://%s:%d/" % Config.ip_port, timeout=15)
+    except urllib2.URLError as err:
+        pass
 
     # whether to open browser specified in config.
     if Config.start_browser:
-        launchAsChromeApp("http://%s:%d/" %Config.ip_port)
+        launchAsChromeApp("http://%s:%d/" % Config.ip_port)
 
     if not serv:
         cherrypy.quickstart(CherryServer(absDir, Config.ip_port), config=config)

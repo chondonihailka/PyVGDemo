@@ -39,17 +39,17 @@ class AjaxHandler(object):
         if demo is None or demo == "0":
             demos = vghd.ModelDemos[id]
             if len(demos) == 0:
-                result = "no demo"
+                result = "No demo found for {}.".format(id)
             else:
                 plist = []
                 for demo in demos:
                     plist.append((id, demo))
                 self.listPlayer = vghd.listPlayer(plist)
                 self.listPlayer.start()
-                result = "Playing all"
+                result = "Playing {} demos from {}.".format(len(demos), id)
         else:
             vghd.playDemo(id, demo)
-            result = "ok"
+            result = "Playing demo {} from {}.".format(demo, id)
         return dict(reply=result)
 
     @cherrypy.expose
@@ -76,5 +76,5 @@ class AjaxHandler(object):
             cherrypy.engine.exit()
         except:
             return "Shutdown Failed!"
-        return "Shutting down..! This might take a minute."
+        return "Shutting down ... This might take a minute."
 

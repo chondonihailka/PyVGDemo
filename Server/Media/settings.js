@@ -1,29 +1,3 @@
-js_default = r"""
-function play(id, demo){
-    if(typeof demo == 'undefined') demo = '0';
-    var postdata = {"id": id, "demo": demo};
-    $.post('/ajax/play/', postdata, function(data) {
-        console.log(data['reply']);
-    });
-    return false ;
-}
-
-function findModel(){
-    var id = prompt("Enter model id: ", "");
-    location.href = "/card/" + id;
-}
-
-function gotoPage(){
-    var pgno = $("#pgno").val();
-    location.href = "/cards/" + pgno;
-}
-
-"""
-
-cherryjs = r"""
-"""
-
-settingsjs = r"""
 function CheckPath(path){
     var postdata = {"path": path};
     var res = false;
@@ -60,34 +34,33 @@ $(function() {
     $("#settingsForm").submit(function() {
         var vgdata = $("#vgdata").val();
         if(CheckPath(vgdata) === false){
-            $("#reply").text("Error in VGHD data directory path.");
+            swal("Error", "Error in VGHD data directory path.", "error");
             return false;
         }
 
         var vgmodels = $("#vgmodels").val();
         if(CheckPath(vgmodels) === false){
-            $("#reply").text("Error in VGHD models directory path.");
+            swal("Error", "Error in VGHD models directory path.", "error");
             return false;
         }
 
         var vgexe = $("#vgexe").val();
         if(CheckPath(vgexe) === false){
-            $("#reply").text("Error in VGHD executable path.");
+            swal("Error", "Error in VGHD executable path.", "error");
             return false;
         }
 
         var winid = $("#winid").val();
         if(CheckRegKey(winid) === false){
-            $("#reply").text("Error in Windows user id. Check again.");
+            swal("Error", "Error in Windows user id. Run 'regedit.exe' and find the first child of HKEY_USERS", "error");
             return false;
         }
 
         var postdata = {"vgdata": vgdata, "vgmodels": vgmodels, "vgexe": vgexe, "winid": winid};
         $.post('/settings/save', postdata, function(data) {
-            $("#reply").html(data['reply']);
+            swal("Settings", data['reply'], "success");
         });
         return false ;
     });
 });
 
-"""
