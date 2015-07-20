@@ -1,6 +1,5 @@
 import cherrypy
 
-from .ServerUtils.ConfigPHelper import Configuration
 from .ServerUtils import Markup
 from . import vghd
 
@@ -8,7 +7,6 @@ from . import vghd
 class AjaxHandler(object):
     def __init__(self, absDir):
         self.absDir = absDir
-        self.cfg = Configuration(self.absDir)
         self.crawlerRunning = False
         self.listPlayer = None
 
@@ -55,7 +53,13 @@ class AjaxHandler(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def nowplaying(self):
-        return dict(reply=vghd.nowPlaying())
+        anim = vghd.nowPlaying()
+        if "\\" in anim:
+            mid = anim.split("\\")[0]
+            clip = anim.split("\\")[1]
+            return dict(clip=clip, id=mid)
+        else:
+            return dict(clip="", id="")
 
     def commandsList(self):
         """

@@ -7,13 +7,16 @@ try:
     import urllib2
 except ImportError:
     import urllib.request as urllib2
+try:
+    import _winreg as winreg
+except ImportError:
+    import winreg
 
 import Config
 from . import vghd
 from .Ajax import AjaxHandler
 from .ServerUtils.HtmlHelper import HTMLHelper
-from .ServerUtils.Utils import launchAsChromeApp
-from .Settings import SettingsHandler
+from .ServerUtils.Utils import launchAsChromeApp, launchApplication
 
 
 class CherryServer(object):
@@ -22,16 +25,11 @@ class CherryServer(object):
 
         self.ajax = AjaxHandler(absDir)
         self.html = HTMLHelper(absDir, ip_port)
-        self.settings = SettingsHandler(absDir)
-        self.settings.load()
-
+        
     @cherrypy.expose
     def index(self):
         """ The home page """
-        if not os.path.isdir(Config.vdhd_data) or not os.path.isdir(Config.vghd_models):
-            return self.settings.index()
-        else:
-            return self.cards()
+        return self.cards()
 
     @cherrypy.expose
     def cards(self, start=0):
@@ -112,7 +110,9 @@ class CherryServer(object):
             html.br()
 
         model = vghd.ModelInfo(id)
-        html.p("Name: {}".format(model.name()))
+        html.b()
+        html.p(model.name())
+        html.b.close()
         html.p("Outfit: {}".format(model.outfit()))
         html.p("City: {}".format(model.city()))
         html.p("Country: {}".format(model.country()))
@@ -183,6 +183,37 @@ class CherryServer(object):
 
 
 def StartServer(absDir):
+
+    print("PyVGDemo - Python VirtuaGirl Demo Player")
+    print()
+
+    # detect the regDId
+    for i in range(20):
+        try:
+            key = winreg.EnumKey(winreg.HKEY_USERS, i)
+        except WindowsError:
+            Config.regId = None
+            break
+        else:
+            try:
+                winreg.OpenKey(winreg.HKEY_USERS, key + r"\Software\Totem\vghd", 0, winreg.KEY_ALL_ACCESS)
+                Config.regId = key
+            except WindowsError:
+                pass
+            else:
+                Config.vdhd_data = vghd.dataDir()
+                Config.vghd_models = vghd.modelsDir()
+                Config.vdhd_exe = vghd.exePath()
+
+                vghd.Load()
+                idxbld = vghd.index_builder()
+                idxbld.start()
+
+                break
+
+    if Config.vdhd_data is None:
+        raise RuntimeError("Failed to determine the VGHD settings.")
+
     config = \
         {
             '/': {
@@ -193,6 +224,10 @@ def StartServer(absDir):
             '/image': {
                 'tools.staticdir.on': True,
                 'tools.staticdir.dir': Config.vdhd_data
+            },
+            '/favicon.ico': {
+                'tools.staticfile.on': True,
+                'tools.staticfile.filename': os.path.join(absDir, "Server/Media/favicon.ico")
             },
             '/media': {
                 'tools.staticdir.on': True,
@@ -206,16 +241,16 @@ def StartServer(absDir):
     cherrypy.server.environment = "production"
     cherrypy.request.show_traceback = False
 
-    serv = None
-    # ping to see server is already running on the current ip_port
-    try:
-        serv = urllib2.urlopen("http://%s:%d/" % Config.ip_port, timeout=15)
-    except urllib2.URLError as err:
-        pass
+    # start the vghd, not a problem if already running
+    launchApplication(Config.vdhd_exe)
 
     # whether to open browser specified in config.
     if Config.start_browser:
         launchAsChromeApp("http://%s:%d/" % Config.ip_port)
 
-    if not serv:
+    try:
+        urllib2.urlopen("http://%s:%d/" % Config.ip_port, timeout=15)
+    except urllib2.URLError as err:
         cherrypy.quickstart(CherryServer(absDir, Config.ip_port), config=config)
+    else:
+        input("Server already running!")

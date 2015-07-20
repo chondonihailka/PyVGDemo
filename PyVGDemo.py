@@ -7,7 +7,7 @@ if getattr(sys, 'frozen', False):
     sys.path.append(os.path.join(os.path.dirname(sys.executable), 'bin\\library.zip'))
     absDir = os.path.join(os.getcwd(), os.path.dirname(sys.executable))
 else:
-    absDir = os.path.join(os.getcwd())
+    absDir = os.getcwd()
 #FREEZING REQUIREMENTS
 
 from Server.CherryServer import StartServer

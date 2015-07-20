@@ -3,9 +3,24 @@ function play(id, demo){
     var postdata = {"id": id, "demo": demo};
     $.post('/ajax/play/', postdata, function(data) {
         console.log(data['reply']);
-        swal({ title: "Play demo", text: data['reply'], timer: 1000});
+        //swal({ title: "Play demo", text: data['reply'], timer: 1000});
     });
     return false ;
+}
+
+function nowPlaying() {
+    var payload = {}
+    $.get('/ajax/nowplaying', payload, function(data) {
+        if(data['id'] == "") {
+            $("#nowPlaying")[0].href = "#";
+            $("#nowPlaying").text("");
+        }
+        else {
+            $("#nowPlaying")[0].href = "/card/" + data['id'];
+            $("#nowPlaying").text("Now Playing: " + data['clip']);
+        }
+    });
+    return false;
 }
 
 function gotoPage(){
@@ -55,3 +70,7 @@ function search(what){
             location.href = "/search/?" + what + "=" + inputValue;
         });
 }
+
+window.addEventListener('load', function(){
+    setInterval(nowPlaying, 2000);
+}, false);

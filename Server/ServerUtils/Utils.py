@@ -1,16 +1,16 @@
 import subprocess
 import threading
+import os
 from os import environ as env
 from os.path import join as pj
 from os.path import isfile
-
 
 def ShellExecute(cmd):
     """
     Executes a command in the system shell. The terminal will not pop up.
     Execution is done on a seperate thread for non-blocking.
     @param cmd: command to execute
-    @return: response of the system
+    @return: handle to the thread
     """
 
     class _shell_thread(threading.Thread):
@@ -30,6 +30,8 @@ def ShellExecute(cmd):
     shell = _shell_thread(cmd)
     shell.start()
 
+    return shell
+
 
 def launchAsChromeApp(url):
     chrome = None
@@ -44,3 +46,6 @@ def launchAsChromeApp(url):
         ShellExecute('"{}" -app={}'.format(chrome, url))
     else:
         ShellExecute("start {}".format(url))
+
+def launchApplication(path):
+    os.system("start {}".format(path))

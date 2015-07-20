@@ -19,15 +19,17 @@ class HTMLHelper():
                             <li class='side'><a href='javascript:search("name");' class='menu'>Search Name</a></li>
                             <li class='side'><a href='javascript:search("outfit");' class='menu'>Search Outfit</a></li>
                             <li class='side'><a href='javascript:search("id");' class='menu'>Search ID</a></li>
-                            <li class='side'><a href='/settings' class='menu'>Settings</a></li>
                             <li class='side'><a href='/help' class='menu'>Help &amp; Information</a></li>
                             <li class='side'><a href='javascript:shutdown();' class='menu'>Shutdown</a></li>
                         </ul>
+                        <hr/>
+                        <div><small><a id='nowPlaying' href='#'></a></small></div>
                     </td>
                     <td>
                         <div id='main'>
-                            <h1>PyVGHD</h1>
+                            <h1>PyVGDemo</h1>
         """
+        
         footer = """
                         </div>
                     </td>
@@ -46,5 +48,5 @@ class HTMLHelper():
     def helpInstruction(self):
         html = self.init("Help and Instructions")
         html.h2("Help and Information")
-        html.p("""Not Implemented""")
+        html.p("""Nothing here! Please see the README.md for details.""")
         return "{}".format(html)
