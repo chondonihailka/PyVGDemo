@@ -9,12 +9,13 @@ try:
 except ImportError:
     import winreg
 
-import Config as cfg
-from . import ThreadUtils
+import Server.Config as cfg
+from Server.ServerUtils import ThreadUtils
 
 ModelDirs = {}
 ModelDemos = {}
 SearchIndex = ""
+__list_player = None
 
 
 class model(object):
@@ -66,11 +67,11 @@ def getModels(st, end):
     return temp
 
 
-def getCardImg(id):
+def getCardImg(card):
     # return the path to the model image for given id
-    dir = ModelDirs[id]
-    x = pj(dir, "{}_full.png".format(id))
-    y = pj(dir, "{}_full.jpg".format(id))
+    modeldir = ModelDirs[card]
+    x = pj(modeldir, "{}_full.png".format(card))
+    y = pj(modeldir, "{}_full.jpg".format(card))
     if os.path.isfile(x):
         return x
     elif os.path.isfile(y):
@@ -79,15 +80,15 @@ def getCardImg(id):
         return "Not Found!"
 
 
-class ModelInfo():
+class ModelInfo:
     # class for parsing all the model info
 
-    def __init__(self, id):
-        self.id = id
+    def __init__(self, card):
+        self.id = card
         self.xml = ""
-        if id in ModelDirs:
-            directory = ModelDirs[id]
-            xfile = pj(directory, "{}.xml".format(id))
+        if card in ModelDirs:
+            directory = ModelDirs[card]
+            xfile = pj(directory, "{}.xml".format(card))
             if os.path.isfile(xfile):
                 xfile = open(xfile)
                 self.xml = xfile.read()
@@ -100,15 +101,15 @@ class ModelInfo():
         else:
             return res[0]
 
-    def ids(self):
+    def cards(self):
         return re.findall(model.id, self.xml)
 
-    def collectedIds(self):
+    def collectedCards(self):
         ids = []
-        for id in self.ids():
-            if id in ModelDemos and id != self.id:
-                if id not in ids:
-                    ids.append(id)
+        for card in self.cards():
+            if card in ModelDemos and card != self.id:
+                if card not in ids:
+                    ids.append(card)
         return ids
 
     def country(self):
@@ -181,12 +182,12 @@ def search(**kwargs):
     )
 
 
-def playDemo(id, demo):
+def playDemo(card, demo):
     # play a specific demo under a model id
-    if demo not in ModelDemos[id]:
+    if demo not in ModelDemos[card]:
         return False
     key = winreg.OpenKey(cfg.regHead, cfg.regId + cfg.regLoc, 0, winreg.KEY_ALL_ACCESS)
-    winreg.SetValueEx(key, "ForceAnim", 0, winreg.REG_SZ, "{}\\{}".format(id, demo))
+    winreg.SetValueEx(key, "ForceAnim", 0, winreg.REG_SZ, "{}\\{}".format(card, demo))
     return True
 
 
@@ -219,33 +220,53 @@ def currentClips():
     return winreg.QueryValueEx(key, "currentClips")[0]
 
 
-class listPlayer(ThreadUtils.ControlledThread):
+class _listPlayer(ThreadUtils.ControlledThread):
     # a thread to play clips sequentially
     def __init__(self, plist):
         ThreadUtils.ControlledThread.__init__(self)
         self.plist = plist
         self.currentAnim = None
         self.playstarted = False
+        self.i = 0
+        #print("List:: will play {}".format(self.plist))
 
     def do_work(self):
         if self.playstarted and not isPlaying():
+            print("List:: stopped.")
             self.finish()
         else:
-            if len(self.plist) > 0:
-                # print("CurrAnim: {} Clips: {}".format(self.currentAnim, currentClips()[0]))
+            if self.i < len(self.plist):
+                # print("CurrAnim: {} Clips: {}".format(self.currentAnim, currentClips().split()))
                 if self.currentAnim in currentClips().split():
                     time.sleep(1)
                 else:
-                    item = self.plist.pop(0)
-                    id = item[0]
-                    demo = item[1]
-                    self.currentAnim = "{}".format(demo)
-                    playDemo(id, demo)
+                    item = self.plist[self.i]
+                    card = item[0]
+                    clip = item[1]
+                    self.currentAnim = "{}".format(clip)
+                    print("List:: Playing {}".format(clip))
+                    playDemo(card, clip)
+
+                    # check if the clip has started playing every half sec,
+                    # max wait 10 * 0.5 = 5 secs
+                    wait = 10
+                    while self.currentAnim not in currentClips().split() and wait:
+                        time.sleep(0.5)
+                        wait -= 1
+
                     self.playstarted = True
-                    time.sleep(2)
+                    self.i += 1
+                    time.sleep(1)
             else:
+                print("List:: finished.")
                 self.finish()
 
+def playList(plist):
+    global __list_player
+    if __list_player and __list_player.isAlive():
+        __list_player.stop()
+    __list_player = _listPlayer(plist)
+    __list_player.start()
 
 def getDemoIds(demos):
     # a helper function to extract the id nos from the

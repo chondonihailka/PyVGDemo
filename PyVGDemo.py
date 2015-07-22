@@ -13,4 +13,15 @@ else:
 from Server.CherryServer import StartServer
 
 if __name__ == '__main__':
-    StartServer(absDir)
+    try:
+        import cherrypy
+    except (ImportError, NameError):
+        input("""Error: Can not find the module 'cherrypy'.
+
+        PyVGDemo depends on CherryPy.
+        Please install CherryPy first. You can install it using pip.
+        Execute "pip install cherrypy" in your command prompt.
+        Or visit http://www.cherrypy.org for other options.
+        """)
+    else:
+        StartServer(absDir)

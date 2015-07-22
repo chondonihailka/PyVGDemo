@@ -1,14 +1,13 @@
 import cherrypy
 
-from .ServerUtils import Markup
-from . import vghd
+from Server.ServerUtils import Markup
+from Server import vghd
 
 
 class AjaxHandler(object):
     def __init__(self, absDir):
         self.absDir = absDir
         self.crawlerRunning = False
-        self.listPlayer = None
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
@@ -42,8 +41,8 @@ class AjaxHandler(object):
                 plist = []
                 for demo in demos:
                     plist.append((id, demo))
-                self.listPlayer = vghd.listPlayer(plist)
-                self.listPlayer.start()
+
+                vghd.playList(plist)
                 result = "Playing {} demos from {}.".format(len(demos), id)
         else:
             vghd.playDemo(id, demo)

@@ -1,6 +1,5 @@
 import subprocess
 import threading
-import os
 from os import environ as env
 from os.path import join as pj
 from os.path import isfile
@@ -48,4 +47,4 @@ def launchAsChromeApp(url):
         ShellExecute("start {}".format(url))
 
 def launchApplication(path):
-    os.system("start {}".format(path))
+    ShellExecute("start {}".format(path))

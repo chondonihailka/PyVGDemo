@@ -12,19 +12,27 @@ try:
 except ImportError:
     import winreg
 
-import Config
-from . import vghd
-from .Ajax import AjaxHandler
-from .ServerUtils.HtmlHelper import HTMLHelper
-from .ServerUtils.Utils import launchAsChromeApp, launchApplication
+import Server.Config as Config
+from Server import vghd
+from Server.PlaylistHandler import PlaylistHandler
+from Server.Ajax import AjaxHandler
+from Server.ServerUtils.HtmlHelper import HTMLHelper
+from Server.ServerUtils.Utils import launchAsChromeApp, launchApplication
 
 
 class CherryServer(object):
     def __init__(self, absDir, ip_port):
         """ Initialize all needed modules. """
-
+        self.absdir = absDir
+        self.ipport = ip_port
         self.ajax = AjaxHandler(absDir)
-        self.html = HTMLHelper(absDir, ip_port)
+        self.playlist = PlaylistHandler(absDir, ip_port)
+        self.html = ""
+        self.loadplaylist()
+
+    def loadplaylist(self):
+        pl = self.playlist.pl
+        self.html = HTMLHelper(self.absdir, self.ipport, pl.lists)
         
     @cherrypy.expose
     def index(self):
@@ -39,6 +47,7 @@ class CherryServer(object):
             end = len(vghd.ModelDemos)
             start = end - 10
 
+        self.loadplaylist()
         html = self.html.init("Cards")
         models = vghd.getModels(start, end)
 
@@ -72,13 +81,13 @@ class CherryServer(object):
         else:
             keys = models.keys()
 
-        for id in keys:
+        for cardno in keys:
             html.div(class_="left")
-            html.a(href="/card/{}".format(id))
-            html.img(src=r"/image/{0}/{0}c.jpg".format(id))
+            html.a(href="/card/{}".format(cardno))
+            html.img(src=r"/image/{0}/{0}c.jpg".format(cardno))
             html.a.close()
             html.br()
-            html.a("Play All", href="javascript:play('{}', '0');".format(id))
+            html.a("Play All", href="javascript:play('{}', '0');".format(cardno))
             html.div.close()
 
         return "{}".format(html)
@@ -88,7 +97,7 @@ class CherryServer(object):
         try:
             pgno = int(pgno)
             return self.cards(pgno * 10)
-        except:
+        except ValueError:
             return self.cards()
 
     @cherrypy.expose
@@ -96,6 +105,7 @@ class CherryServer(object):
         if id not in vghd.ModelDirs:
             return self.cards()
 
+        self.loadplaylist()
         html = self.html.init("Card {}".format(id))
         html.div(class_="left")
         html.a(href="javascript:play('{}', '0');".format(id))
@@ -107,6 +117,8 @@ class CherryServer(object):
         html.p("No. of Demos: {}".format(count))
         for demo in vghd.ModelDemos[id]:
             html.a(demo, href="javascript:play('{}', '{}');".format(id, demo))
+            if len(self.playlist.pl.lists) > 0:
+                html.a("[+]", href="javascript:pl.AddClip('{}', '{}');".format(id, demo))
             html.br()
 
         model = vghd.ModelInfo(id)
@@ -119,11 +131,11 @@ class CherryServer(object):
         html.p("Description: {}".format(model.description()))
         html.p("Cards: ")
 
-        for cardId in model.ids():
+        for cardId in model.cards():
             html.add("{} ".format(cardId))
 
         html.p("Additional collected cards: ")
-        for cardId in model.collectedIds():
+        for cardId in model.collectedCards():
             html.a(cardId, href="/card/{}".format(cardId))
             html.add(" ")
 
@@ -131,6 +143,7 @@ class CherryServer(object):
 
     @cherrypy.expose
     def search(self, **kwargs):
+        self.loadplaylist()
         if "name" in kwargs:
             search_term = kwargs["name"]
             html = self.html.init("Search name '{}'".format(search_term))
@@ -177,7 +190,15 @@ class CherryServer(object):
         return self.ajax.index(command)
 
     @cherrypy.expose
+    def reload(self):
+        vghd.Load()
+        idxbld = vghd.index_builder()
+        idxbld.start()
+        return self.cards()
+
+    @cherrypy.expose
     def help(self):
+        self.loadplaylist()
         html = self.html.helpInstruction()
         return "{}".format(html)
 
@@ -208,7 +229,6 @@ def StartServer(absDir):
                 vghd.Load()
                 idxbld = vghd.index_builder()
                 idxbld.start()
-
                 break
 
     if Config.vdhd_data is None:
@@ -250,7 +270,7 @@ def StartServer(absDir):
 
     try:
         urllib2.urlopen("http://%s:%d/" % Config.ip_port, timeout=15)
-    except urllib2.URLError as err:
+    except urllib2.URLError:
         cherrypy.quickstart(CherryServer(absDir, Config.ip_port), config=config)
     else:
         input("Server already running!")
