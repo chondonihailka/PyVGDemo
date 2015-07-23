@@ -38,14 +38,21 @@ def Load():
         return
 
     for dir_name in os.listdir(cfg.vdhd_data):
+        # inside the vghd data dir,
+        # each dir is named as the card no,
         model_dir = pj(cfg.vdhd_data, dir_name)
         if os.path.isdir(model_dir):
+            # for each such dir,
             for file_item in os.listdir(model_dir):
-                if file_item.endswith(".xml"):
+                # if there is an xml file,
+                if file_item.endswith(".xml") and "cache" not in file_item:
+                    # store the dir.
                     ModelDirs[dir_name] = model_dir
                     ModelDemos[dir_name] = []
                     demo_dir = pj(cfg.vghd_models, dir_name)
+                    # if a same dir exists inside the vghd models dir,
                     if os.path.isdir(demo_dir):
+                        # store the clips.
                         for demo_file in os.listdir(demo_dir):
                             # we will need to change here if we want 
                             # to include more than demo files
@@ -232,19 +239,24 @@ class _listPlayer(ThreadUtils.ControlledThread):
 
     def do_work(self):
         if self.playstarted and not isPlaying():
+            # The list has started playing, but its not
+            # playing now. That means vghd has been turned off
             print("List:: stopped.")
             self.finish()
         else:
             if self.i < len(self.plist):
                 # print("CurrAnim: {} Clips: {}".format(self.currentAnim, currentClips().split()))
                 if self.currentAnim in currentClips().split():
+                    # wait. our clip is still playing
                     time.sleep(1)
                 else:
+                    # take the next clip from the list
                     item = self.plist[self.i]
                     card = item[0]
                     clip = item[1]
                     self.currentAnim = "{}".format(clip)
                     print("List:: Playing {}".format(clip))
+                    # play it
                     playDemo(card, clip)
 
                     # check if the clip has started playing every half sec,
@@ -261,16 +273,26 @@ class _listPlayer(ThreadUtils.ControlledThread):
                 print("List:: finished.")
                 self.finish()
 
+
 def playList(plist):
+    # Play the list of clips given.
+    # A seperate thread is spawned to control it.
+    # If a list is being played, it is stopped.
+
     global __list_player
+
     if __list_player and __list_player.isAlive():
         __list_player.stop()
+
     __list_player = _listPlayer(plist)
     __list_player.start()
 
+    return __list_player
+
+
 def getDemoIds(demos):
-    # a helper function to extract the id nos from the
-    # given list of demos. Return the list of ids.
+    # a helper function to extract the card nos from the
+    # given list of demos. Return the list of card nos.
     ids = []
     for demo in demos:
         ids.append(demo.split(".")[0].split("_")[1])

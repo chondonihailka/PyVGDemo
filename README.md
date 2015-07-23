@@ -36,8 +36,6 @@ Python plugin for [VirtuaGirl HD][virtuagirl] demos. Provides a decent user inte
 	Installation can be done using pip as `pip install cherrypy`.
 * Run the `PyVGDemo.py`
 
-_Note_: This program does not start the `VG`, it must be already running.
-
 
 ## Similar softwares:
 

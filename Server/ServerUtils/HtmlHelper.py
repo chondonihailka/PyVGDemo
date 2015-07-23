@@ -43,10 +43,15 @@ class HTMLHelper:
                         <p><b>Playlists:</b></p>
                 """
 
+        # the playlists
         for i, pl in enumerate(self.playlists):
             name = pl.name
+            
             if len(name) > 40:
+                # if name is too large, take only the first 4 words
+                # @todo: what if the name is not space separated?
                 name = "&nbsp;".join(name.split()[:4]) + "..."
+
             footer +=   """<p class="plList" id="plList-{0}">"""\
                         """[<a class="plFunc" id="plFunc-{0}" href="javascript:pl.Func({0}, '{1}');">&gt;</a>]"""\
                         """&nbsp;<a class="plLink" id="plLink-{0}" href="/playlist?idx={0}">{1}</a>"""\

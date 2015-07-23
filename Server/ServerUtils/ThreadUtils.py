@@ -3,7 +3,7 @@ import threading
 
 class ControlledThread(threading.Thread):
     """
-    The ControlledThread is a controllable thread, meaning once started
+    ControlledThread is a controllable thread, meaning once started
     it can be paused, resumed and stopped. A class must inherit it overriding
     and implementing the do_work() method which will be called repeatedly
     in the thread running loop.

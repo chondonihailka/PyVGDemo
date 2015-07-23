@@ -7,7 +7,6 @@ from Server import vghd
 class AjaxHandler(object):
     def __init__(self, absDir):
         self.absDir = absDir
-        self.crawlerRunning = False
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
@@ -33,7 +32,11 @@ class AjaxHandler(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def play(self, id, demo=None):
+        # Play a clip from an specific model
+
         if demo is None or demo == "0":
+            # if no clip was specified, we will load all the clips
+            # from the model and play them as a playlist
             demos = vghd.ModelDemos[id]
             if len(demos) == 0:
                 result = "No demo found for {}.".format(id)
@@ -52,6 +55,7 @@ class AjaxHandler(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def nowplaying(self):
+        # return the info about the clip currently playing
         anim = vghd.nowPlaying()
         if "\\" in anim:
             mid = anim.split("\\")[0]

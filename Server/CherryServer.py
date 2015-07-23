@@ -23,9 +23,13 @@ from Server.ServerUtils.Utils import launchAsChromeApp, launchApplication
 class CherryServer(object):
     def __init__(self, absDir, ip_port):
         """ Initialize all needed modules. """
+        # root directory
         self.absdir = absDir
+        # the ip and port the server will serve on
         self.ipport = ip_port
+        # handles common ajax related requests
         self.ajax = AjaxHandler(absDir)
+        # handles playlist related requests
         self.playlist = PlaylistHandler(absDir, ip_port)
         self.html = ""
         self.loadplaylist()
@@ -41,17 +45,24 @@ class CherryServer(object):
 
     @cherrypy.expose
     def cards(self, start=0):
+        # returns all the models' cards
+        # 10 on each page
         start = int(start)
         end = start + 10
+
         if end > len(vghd.ModelDemos):
             end = len(vghd.ModelDemos)
             start = end - 10
 
+        # meanwhile, the playlists might have changed
+        # so we need to reload them
         self.loadplaylist()
+
         html = self.html.init("Cards")
         models = vghd.getModels(start, end)
 
         html.div()
+        # the pagination links
         if start > 0:
             html.a("Prev", href="/cards/{}".format(start - 10))
         if end < len(vghd.ModelDemos):
@@ -76,6 +87,7 @@ class CherryServer(object):
         html.div.close()
         html.hr()
 
+        # display models in sorted order, or randomly as they were loaded
         if Config.models_sorted:
             keys = sorted(models)
         else:
@@ -94,6 +106,7 @@ class CherryServer(object):
 
     @cherrypy.expose
     def cardspage(self, pgno, **kwargs):
+        # alias for cards()
         try:
             pgno = int(pgno)
             return self.cards(pgno * 10)
@@ -102,10 +115,14 @@ class CherryServer(object):
 
     @cherrypy.expose
     def card(self, id):
+        # returns info about a specific card
+
         if id not in vghd.ModelDirs:
             return self.cards()
 
+        # reload the playlists
         self.loadplaylist()
+
         html = self.html.init("Card {}".format(id))
         html.div(class_="left")
         html.a(href="javascript:play('{}', '0');".format(id))
@@ -117,10 +134,12 @@ class CherryServer(object):
         html.p("No. of Demos: {}".format(count))
         for demo in vghd.ModelDemos[id]:
             html.a(demo, href="javascript:play('{}', '{}');".format(id, demo))
+            # add a link to add to the playlists
             if len(self.playlist.pl.lists) > 0:
                 html.a("[+]", href="javascript:pl.AddClip('{}', '{}');".format(id, demo))
             html.br()
 
+        # all the available info about the card
         model = vghd.ModelInfo(id)
         html.b()
         html.p(model.name())
@@ -136,13 +155,17 @@ class CherryServer(object):
 
         html.p("Additional collected cards: ")
         for cardId in model.collectedCards():
-            html.a(cardId, href="/card/{}".format(cardId))
+            html.a(href="/card/{}".format(cardId))
+            html.img(src=r"/image/{0}/{0}c.jpg".format(cardId), width="60px")
+            html.a.close()
             html.add(" ")
+
 
         return "{}".format(html)
 
     @cherrypy.expose
     def search(self, **kwargs):
+        # search models by name or id or outfit
         self.loadplaylist()
         if "name" in kwargs:
             search_term = kwargs["name"]
@@ -172,11 +195,11 @@ class CherryServer(object):
             html.img(src=r"/image/{0}/{0}c.jpg".format(model[0]))
             html.a.close()
             html.p("{} by {} ({}) from {}, {}".format(
-                model[2].title(),
-                model[1].title(),
-                model[0],
-                model[3].title(),
-                model[4].title()
+                model[2].title(),   # outfit
+                model[1].title(),   # name
+                model[0],           # id
+                model[3].title(),   # city
+                model[4].title()    # country
             )
             )
             html.a("Play all of {}".format(model[2].title()), href="javascript:play('{}', '0');".format(model[0]))
@@ -187,10 +210,14 @@ class CherryServer(object):
 
     @cherrypy.expose
     def execute(self, command):
+        # execute an ajax request
         return self.ajax.index(command)
 
     @cherrypy.expose
     def reload(self):
+        # reload all the vghd models.
+        # this is needed to load the newly downloaded demo by vghd
+        # after the server has started
         vghd.Load()
         idxbld = vghd.index_builder()
         idxbld.start()
@@ -208,20 +235,25 @@ def StartServer(absDir):
     print("PyVGDemo - Python VirtuaGirl Demo Player")
     print()
 
-    # detect the regDId
+    # detect the userkey in HKEY_USERS
     for i in range(20):
+        # check the first 20 subkeys, which should be more than enough
         try:
             key = winreg.EnumKey(winreg.HKEY_USERS, i)
         except WindowsError:
+            # we have reached the end of the list of subkeys
             Config.regId = None
             break
         else:
+            # check if vghd key exists in the current userkey
             try:
                 winreg.OpenKey(winreg.HKEY_USERS, key + r"\Software\Totem\vghd", 0, winreg.KEY_ALL_ACCESS)
                 Config.regId = key
             except WindowsError:
+                # nope, it doesn't exist
                 pass
             else:
+                # yep, we found it. Load the settings
                 Config.vdhd_data = vghd.dataDir()
                 Config.vghd_models = vghd.modelsDir()
                 Config.vdhd_exe = vghd.exePath()
@@ -232,6 +264,9 @@ def StartServer(absDir):
                 break
 
     if Config.vdhd_data is None:
+        # at this point we have nothing else to do.
+        # perhaps we don't support the current version of the VGHD?
+        # or its not installed properly?
         raise RuntimeError("Failed to determine the VGHD settings.")
 
     config = \
